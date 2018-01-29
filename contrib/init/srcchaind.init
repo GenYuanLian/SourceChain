@@ -1,0 +1,67 @@
+#!/bin/bash
+#
+#  srcchaind The srcchain core server.
+#
+#
+# chkconfig: 345 80 20
+# description: srcchaind
+# processname: srcchaind
+#
+
+# Source function library.
+. /etc/init.d/functions
+
+# you can override defaults in /etc/sysconfig/srcchaind, see below
+if [ -f /etc/sysconfig/srcchaind ]; then
+        . /etc/sysconfig/srcchaind
+fi
+
+RETVAL=0
+
+prog=srcchaind
+# you can override the lockfile via SRCCHAIND_LOCKFILE in /etc/sysconfig/srcchaind
+lockfile=${SRCCHAIND_LOCKFILE-/var/lock/subsys/srcchaind}
+
+# srcchaind defaults to /usr/bin/srcchaind, override with SRCCHAIND_BIN
+srcchaind=${SRCCHAIND_BIN-/usr/bin/srcchaind}
+
+# srcchaind opts default to -disablewallet, override with SRCCHAIND_OPTS
+srcchaind_opts=${SRCCHAIND_OPTS--disablewallet}
+
+start() {
+    echo -n $"Starting $prog: "
+    daemon $DAEMONOPTS $srcchaind $srcchaind_opts
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    killproc $prog
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    return $RETVAL
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status $prog
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: service $prog {start|stop|status|restart}"
+        exit 1
+        ;;
+esac

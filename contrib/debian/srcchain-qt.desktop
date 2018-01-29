@@ -1,0 +1,13 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Srcchain Core
+Comment=Connect to the Srcchain P2P Network
+Comment[de]=Verbinde mit dem Srcchain peer-to-peer Netzwerk
+Comment[fr]=Srcchain, monnaie virtuelle cryptographique pair à pair
+Comment[tr]=Srcchain, eşten eşe kriptografik sanal para birimi
+Exec=srcchain-qt %u
+Terminal=false
+Type=Application
+Icon=srcchain128
+MimeType=x-scheme-handler/srcchain;
+Categories=Office;Finance;

@@ -1,0 +1,6 @@
+usr/local/bin/srcchain-qt usr/bin
+share/pixmaps/srcchain32.xpm usr/share/pixmaps
+share/pixmaps/srcchain16.xpm usr/share/pixmaps
+share/pixmaps/srcchain128.png usr/share/pixmaps
+debian/srcchain-qt.desktop usr/share/applications
+debian/srcchain-qt.protocol usr/share/kde4/services/

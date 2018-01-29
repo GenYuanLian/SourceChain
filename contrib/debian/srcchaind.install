@@ -1,0 +1,2 @@
+usr/local/bin/srcchaind usr/bin
+usr/local/bin/srcchain-cli usr/bin

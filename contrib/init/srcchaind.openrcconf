@@ -1,0 +1,33 @@
+# /etc/conf.d/srcchaind: config file for /etc/init.d/srcchaind
+
+# Config file location
+#SRCCHAIND_CONFIGFILE="/etc/srcchain/srcchain.conf"
+
+# What directory to write pidfile to?  (created and owned by $SRCCHAIND_USER)
+#SRCCHAIND_PIDDIR="/var/run/srcchaind"
+
+# What filename to give the pidfile
+#SRCCHAIND_PIDFILE="${SRCCHAIND_PIDDIR}/srcchaind.pid"
+
+# Where to write srcchaind data (be mindful that the blockchain is large)
+#SRCCHAIND_DATADIR="/var/lib/srcchaind"
+
+# User and group to own srcchaind process
+#SRCCHAIND_USER="srcchain"
+#SRCCHAIND_GROUP="srcchain"
+
+# Path to srcchaind executable
+#SRCCHAIND_BIN="/usr/bin/srcchaind"
+
+# Nice value to run srcchaind under
+#SRCCHAIND_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#SRCCHAIND_OPTS=""
+
+# The timeout in seconds OpenRC will wait for srcchaind to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+SRCCHAIND_SIGTERM_TIMEOUT=60

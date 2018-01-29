@@ -1,0 +1,92 @@
+#!/sbin/runscript
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/srcchain/.srcchain" ]; then
+	SRCCHAIND_DEFAULT_DATADIR="/var/lib/srcchain/.srcchain"
+else
+	SRCCHAIND_DEFAULT_DATADIR="/var/lib/srcchaind"
+fi
+
+SRCCHAIND_CONFIGFILE=${SRCCHAIND_CONFIGFILE:-/etc/srcchain/srcchain.conf}
+SRCCHAIND_PIDDIR=${SRCCHAIND_PIDDIR:-/var/run/srcchaind}
+SRCCHAIND_PIDFILE=${SRCCHAIND_PIDFILE:-${SRCCHAIND_PIDDIR}/srcchaind.pid}
+SRCCHAIND_DATADIR=${SRCCHAIND_DATADIR:-${SRCCHAIND_DEFAULT_DATADIR}}
+SRCCHAIND_USER=${SRCCHAIND_USER:-${SRCCHAIN_USER:-srcchain}}
+SRCCHAIND_GROUP=${SRCCHAIND_GROUP:-srcchain}
+SRCCHAIND_BIN=${SRCCHAIND_BIN:-/usr/bin/srcchaind}
+SRCCHAIND_NICE=${SRCCHAIND_NICE:-${NICELEVEL:-0}}
+SRCCHAIND_OPTS="${SRCCHAIND_OPTS:-${SRCCHAIN_OPTS}}"
+
+name="Srcchain Core Daemon"
+description="Srcchain cryptocurrency P2P network daemon"
+
+command="/usr/bin/srcchaind"
+command_args="-pid=\"${SRCCHAIND_PIDFILE}\" \
+		-conf=\"${SRCCHAIND_CONFIGFILE}\" \
+		-datadir=\"${SRCCHAIND_DATADIR}\" \
+		-daemon \
+		${SRCCHAIND_OPTS}"
+
+required_files="${SRCCHAIND_CONFIGFILE}"
+start_stop_daemon_args="-u ${SRCCHAIND_USER} \
+			-N ${SRCCHAIND_NICE} -w 2000"
+pidfile="${SRCCHAIND_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${SRCCHAIND_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${SRCCHAIND_USER}:${SRCCHAIND_GROUP}" \
+	"${SRCCHAIND_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${SRCCHAIND_USER}:${SRCCHAIND_GROUP}" \
+	"${SRCCHAIND_PIDDIR}"
+
+	checkpath -f \
+	-o ${SRCCHAIND_USER}:${SRCCHAIND_GROUP} \
+	-m 0660 \
+	${SRCCHAIND_CONFIGFILE}
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if ! grep -qs '^rpcpassword=' "${SRCCHAIND_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run srcchaind."
+		eerror "The setting must appear in ${SRCCHAIND_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following"
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is also recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"Srcchain Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}
