@@ -516,7 +516,7 @@ void static SrcchainMiner(const CChainParams& chainparams)
 
 void GenerateSrcchains(bool fGenerate, int nThreads, const CChainParams& chainparams)
 {
-    return;
+    return 0;
     static boost::thread_group* minerThreads = NULL;
 
     if (nThreads < 0)

@@ -32,3 +32,8 @@ src/univalue/lib
 src/wallet
 src/wallet/test
 src/zmq
+src/crypto/schash
+src/leveldb/issues
+src/leveldb/doc/bench
+src/univalue/test
+src/univalue/gen
