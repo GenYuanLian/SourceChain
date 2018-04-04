@@ -65,8 +65,17 @@ int64_t UpdateTime(CBlockHeader* pblock, const Consensus::Params& consensusParam
     if (nOldTime < nNewTime)
         pblock->nTime = nNewTime;
 
+    //mainnet 硬分叉 ，关闭非例行改难度
+    bool bCurrAllow = consensusParams.fPowAllowMinDifficultyBlocks;
+    const CChainParams& chainparams = Params();
+
+    if( "main" == chainparams.NetworkIDString() && pindexPrev->nHeight+1 >= MODIFY_BASE_MAINNET_DIFFI_HEIGHT)
+    {
+    	bCurrAllow = false;
+    }
+
     // Updating time can change work required on testnet:
-    if (consensusParams.fPowAllowMinDifficultyBlocks)
+    if (bCurrAllow)
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams);
 
     return nNewTime - nOldTime;
@@ -483,6 +492,79 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
 // zero.
 //
 
+bool static ScanHash_sha256(const CBlockHeader *pblock, uint32_t& nNonce, uint256 *phash)
+{
+    // Write the first 76 bytes of the block header to a double-SHA256 state.
+    CHash256 hasher;
+    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+    ss << *pblock;
+    assert(ss.size() == 80);
+    hasher.Write((unsigned char*)&ss[0], 76);
+
+    while (true) {
+        nNonce++;
+
+        // Write the last 4 bytes of the block header (the nonce) to a copy of
+        // the double-SHA256 state, and compute the result.
+        CHash256(hasher).Write((unsigned char*)&nNonce, 4).Finalize((unsigned char*)phash);
+
+        // Return the nonce if the hash has at least some zero bits,
+        // caller will check if it has enough to reach the target
+        if (((uint16_t*)phash)[15] == 0)
+            return true;
+
+        // If nothing found after trying for a while, return -1
+        if ((nNonce & 0xfff) == 0)
+            return false;
+    }
+}
+
+bool static ScanHash_srcchain(CBlockHeader *pblock, uint256 &thash, arith_uint256 &hashTarget)
+{
+    while (true) {
+
+        srcchain_hash(BEGIN(pblock->nVersion), BEGIN(thash));
+
+        if (UintToArith256(thash) <= hashTarget)
+        {
+            thash=ArithToUint256(UintToArith256(thash));
+            return true;
+        }
+
+        pblock->nNonce += 1;
+        if ((pblock->nNonce & 0xFF) == 0)
+        {
+            return false;
+        }
+    }
+}
+
+
+
+//CBlockTemplate* CreateNewBlockWithKey(CReserveKey& reservekey)
+//{
+//    CPubKey pubkey;
+//    if (!reservekey.GetReservedKey(pubkey))
+//        return NULL;
+
+//    CScript scriptPubKey = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;
+//    return CreateNewBlock(scriptPubKey);
+//}
+
+//std::unique_ptr<CBlockTemplate> * BlockAssembler::CreateNewBlockWithKey(CReserveKey &reservekey)
+//{
+//    LogPrintf("CreateNewBlockWithKey()\n");
+//    CPubKey pubkey;
+//    if (!reservekey.GetReservedKey(pubkey))
+//        return NULL;
+
+//    CScript scriptPubKey = CScript() << pubkey << OP_CHECKSIG;
+////    CScript scriptPubKey = GetScriptForDestination(pubkey.GetID());;
+
+////    std::unique_ptr<CBlockTemplate> pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(scriptPubKey);
+////    std::unique_ptr<CBlockTemplate> pblocktemplate = CreateNewBlock(scriptPubKey);
+//    return CreateNewBlock(scriptPubKey);
+//}
 
 static bool ProcessBlockFound(const CBlock* pblock, const CChainParams& chainparams)
 {
@@ -511,12 +593,154 @@ static bool ProcessBlockFound(const CBlock* pblock, const CChainParams& chainpar
 
 void static SrcchainMiner(const CChainParams& chainparams)
 {
-    return; 
+    LogPrintf("BSTKMiner started\n");
+    SetThreadPriority(THREAD_PRIORITY_LOWEST);
+    RenameThread("BSTK-miner");
+
+    unsigned int nExtraNonce = 0;
+
+    std::shared_ptr<CReserveScript> coinbaseScript;
+    GetMainSignals().ScriptForMining(coinbaseScript);
+    try {
+        // Throw an error if no script was provided.  This can happen
+        // due to some internal error but also if the keypool is empty.
+        // In the latter case, already the pointer is NULL.
+        if (!coinbaseScript || coinbaseScript->reserveScript.empty())
+            throw std::runtime_error("No coinbase script available (mining requires a wallet)");
+
+        while (true) {
+            if (chainparams.MiningRequiresPeers()) {
+                // Busy-wait for the network to come online so we don't waste time mining
+                // on an obsolete chain. In regtest mode we expect to fly solo.
+                do {
+                    bool fvNodesEmpty;
+
+                    //xd added started
+                    if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
+                    {
+                        fvNodesEmpty=true;
+                    }
+                    else
+                    {
+                        fvNodesEmpty=false;
+                    }
+                    //xd added end
+
+                    LogPrintf("%s %d|fvNodesEmpty=%d\n", __FILE__, __LINE__, fvNodesEmpty);
+
+                    if (!fvNodesEmpty && !IsInitialBlockDownload())
+                    {
+                        break;
+                    }
+                    MilliSleep(1000);
+                } while (true);
+            }
+
+            //
+            // Create new block
+            //
+            unsigned int nTransactionsUpdatedLast = mempool.GetTransactionsUpdated();
+            CBlockIndex* pindexPrev = chainActive.Tip();
+
+            std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript));
+            if (!pblocktemplate.get())
+            {
+                LogPrintf("Error in SrcchainMiner: Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
+                return;
+            }
+            CBlock *pblock = &pblocktemplate->block;
+            IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
+
+            LogPrintf("Running SrcchainMiner with %u transactions in block (%u bytes)\n", pblock->vtx.size(),
+                ::GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION));
+
+            //
+            // Search
+            //
+            int64_t nStart = GetTime();
+            arith_uint256 hashTarget = arith_uint256().SetCompact(pblock->nBits);
+            uint256 hash;
+            uint32_t nNonce = 0;
+            while (true) {
+                // Check if something found
+//                if (ScanHash_sha256(pblock, nNonce, &hash))
+                if (ScanHash_srcchain(pblock, hash, hashTarget))
+                {
+                	LogPrintf("%s %d|hash=%s|hashTarget=%s\n", __FILE__, __LINE__, UintToArith256(hash).ToString() ,hashTarget.ToString() );
+
+                    if (UintToArith256(hash) <= hashTarget)
+                    {
+                        // Found a solution
+//                        pblock->nNonce = nNonce;
+//                        LogPrintf("hash            :%s\n",hash.ToString());
+//                        LogPrintf("pblock->GetHash :%s\n",pblock->GetHash().ToString());
+                        assert(hash == pblock->GetHash());
+
+                        SetThreadPriority(THREAD_PRIORITY_NORMAL);
+                        LogPrintf("SrcchainMiner:\n");
+                        LogPrintf("proof-of-work found  \n  hash: %s  \ntarget: %s\n", hash.GetHex(), hashTarget.GetHex());
+                        LogPrintf("nNonce %x\n",nNonce);
+                        ProcessBlockFound(pblock, chainparams);
+                        SetThreadPriority(THREAD_PRIORITY_LOWEST);
+                        coinbaseScript->KeepScript();
+
+                        // In regression test mode, stop mining after a block is found.
+                        if (chainparams.MineBlocksOnDemand())
+                            throw boost::thread_interrupted();
+
+                        break;
+                    }
+                }
+
+                // Check for stop or if block needs to be rebuilt
+                boost::this_thread::interruption_point();
+
+                // Regtest mode doesn't require peers //xd added
+                if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL)==0 && chainparams.MiningRequiresPeers())
+                    break;
+
+                if (nNonce >= 0xffff0000)
+                    break;
+                if (mempool.GetTransactionsUpdated() != nTransactionsUpdatedLast && GetTime() - nStart > 60)
+                    break;
+                if (pindexPrev != chainActive.Tip())
+                    break;
+
+                // Update nTime every few seconds
+                if (UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev) < 0)
+                    break; // Recreate the block if the clock has run backwards,
+                           // so that we can use the correct time.
+
+                //mainnet 硬分叉 ，关闭非例行改难度
+                bool bCurrAllow = chainparams.GetConsensus().fPowAllowMinDifficultyBlocks;
+
+                if( "main" == chainparams.NetworkIDString() && (pindexPrev->nHeight+1) >= MODIFY_BASE_MAINNET_DIFFI_HEIGHT)
+                {
+                	bCurrAllow = false;
+                }
+
+                if (bCurrAllow)
+                {
+                    // Changing pblock->nTime can change work required on testnet:
+                    hashTarget.SetCompact(pblock->nBits);
+                }
+            }
+        }
+    }
+    catch (const boost::thread_interrupted&)
+    {
+        LogPrintf("SrcchainMiner terminated\n");
+        throw;
+    }
+    catch (const std::runtime_error &e)
+    {
+        LogPrintf("SrcchainMiner runtime error: %s\n", e.what());
+        return;
+    }
 }
 
 void GenerateSrcchains(bool fGenerate, int nThreads, const CChainParams& chainparams)
 {
-    return 0;
     static boost::thread_group* minerThreads = NULL;
 
     if (nThreads < 0)

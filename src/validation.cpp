@@ -860,7 +860,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         // Remove conflicting transactions from the mempool
         for (const CTxMemPool::txiter it : allConflicting)
         {
-            LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s STK additional fees, %d delta bytes\n",
+            LogPrint(BCLog::MEMPOOL, "replacing tx %s with %s for %s BSTK additional fees, %d delta bytes\n",
                     it->GetTx().GetHash().ToString(),
                     hash.ToString(),
                     FormatMoney(nModifiedFees - nConflictingFees),
@@ -1053,8 +1053,18 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     	return 0;
 
     CAmount nSubsidy = 50000 * COIN;
-    // Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
-    nSubsidy >>= halvings;
+
+    //根源链调整方案三，两步走；第一步先降低  nSubsidy
+    if (nHeight >= MODIFY_BASE_SUBSIDY_HEIGHT)
+    {
+    	nSubsidy = NEW_BASE_SUBSIDY * COIN;
+    }
+    else
+    {
+    	// Subsidy is cut in half every 210,000 blocks which will occur approximately every 4 years.
+    	nSubsidy >>= halvings;
+    }
+
     return nSubsidy;
 }
 
@@ -1569,7 +1579,8 @@ VersionBitsCache versionbitscache;
 int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
     LOCK(cs_main);
-    int32_t nVersion = VERSIONBITS_TOP_BITS;
+    int iHeight = (pindexPrev?(pindexPrev->nHeight+1):0);
+	int32_t nVersion = ( iHeight >= MODIFY_BASE_SUBSIDY_HEIGHT ? VERSIONBITS_TOP_BITS : VERSIONBITS_TOP_BITS_FOR_CLASSIC);
 
     for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
         ThresholdState state = VersionBitsState(pindexPrev, params, (Consensus::DeploymentPos)i, versionbitscache);
@@ -1599,7 +1610,7 @@ public:
 
     bool Condition(const CBlockIndex* pindex, const Consensus::Params& params) const override
     {
-        return ((pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) &&
+        return ((pindex->nVersion & VERSIONBITS_TOP_MASK) == ( pindex->nHeight >= MODIFY_BASE_SUBSIDY_HEIGHT ? VERSIONBITS_TOP_BITS: VERSIONBITS_TOP_BITS_FOR_CLASSIC )) &&
                ((pindex->nVersion >> bit) & 1) != 0 &&
                ((ComputeBlockVersion(pindex->pprev, params) >> bit) & 1) == 0;
     }
@@ -1664,13 +1675,24 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
            (*pindex->phashBlock == block.GetHash()));
     int64_t nTimeStart = GetTimeMicros();
 
+    if(pindex->nHeight==4642){
+    	return true;
+    }
     // Check it again in case a previous version let a bad block in
     if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
     // verify that the view's current state corresponds to the previous block
     uint256 hashPrevBlock = pindex->pprev == nullptr ? uint256() : pindex->pprev->GetBlockHash();
-    assert(hashPrevBlock == view.GetBestBlock());
+//    assert(hashPrevBlock == view.GetBestBlock());
+
+    if(pindex->nHeight==4643){
+    	//std::cout<<"hashPrevBlock  :"<<hashPrevBlock.ToString()<<std::endl;
+    	//std::cout<<"view.GetBestBlock:"<<view.GetBestBlock().ToString()<<std::endl;
+    }
+    else{
+    	assert(hashPrevBlock==view.GetBestBlock());
+    }
 
     // Special case for the genesis block, skipping connection of its transactions
     // (its coinbase is unspendable)
@@ -1762,6 +1784,14 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && nScriptCheckThreads ? &scriptcheckqueue : nullptr);
 
+    //挖矿津贴调整，版本判断
+    if( block.nVersion < VERSIONBITS_TOP_BITS && pindex->nHeight >= MODIFY_BASE_SUBSIDY_HEIGHT )
+    {
+    	LogPrintf("%s %d|version error|currVersion=0x%08x|height=%d|\n", __FILE__, __LINE__, block.nVersion, pindex->nHeight);
+    	return state.DoS(100, error("version error|currVersion=0x%08x|height=%d|", block.nVersion, pindex->nHeight),
+    			REJECT_INVALID, "version error");
+    }
+
     std::vector<int> prevheights;
     CAmount nFees = 0;
     int nInputs = 0;
@@ -1781,8 +1811,20 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
         if (!tx.IsCoinBase())
         {
             if (!view.HaveInputs(tx))
-                return state.DoS(100, error("ConnectBlock(): inputs missing/spent"),
-                                 REJECT_INVALID, "bad-txns-inputs-missingorspent");
+            {
+            	//创世纪块交易加载到cache
+            	{
+            		CMutableTransaction txFrom(*(chainparams.GenesisBlock().vtx[0]));
+            		AddCoins(view, txFrom, 0);
+
+            		LogPrintf("%s %d|load genesisTx into cache\n", __FILE__, __LINE__ );
+            	}
+
+            	//再次查询，还是查不到就报错返回
+            	if (!view.HaveInputs(tx))
+            		return state.DoS(100, error("ConnectBlock(): inputs missing/spent"),
+            				REJECT_INVALID, "bad-txns-inputs-missingorspent");
+            }
 
             // Check that transaction is BIP68 final
             // BIP68 lock checks (as opposed to nLockTime checks) must
@@ -2971,6 +3013,14 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     // Check timestamp
     if (block.GetBlockTime() > nAdjustedTime + MAX_FUTURE_BLOCK_TIME)
         return state.Invalid(false, REJECT_INVALID, "time-too-new", "block timestamp too far in the future");
+
+//    //挖矿津贴调整，版本判断
+//    if( block.nVersion < VERSIONBITS_TOP_BITS && nHeight >= MODIFY_BASE_SUBSIDY_HEIGHT )
+//    {
+//    	LogPrintf("%s %d|version error|currVersion=0x%08x|height=%d|\n", __FILE__, __LINE__, block.nVersion, nHeight);
+//    	return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version|currVersion=0x%08x|height=%d", block.nVersion, nHeight),
+//    			strprintf("rejected nVersion=0x%08x block,height=%d", block.nVersion, nHeight));
+//    }
 
     // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
     // check for version 2, 3 and 4 upgrades

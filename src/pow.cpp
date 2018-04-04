@@ -9,6 +9,8 @@
 #include "chain.h"
 #include "primitives/block.h"
 #include "uint256.h"
+#include "chainparams.h"
+#include "validation.h"
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
@@ -18,7 +20,16 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     // Only change once per difficulty adjustment interval
     if ((pindexLast->nHeight+1) % params.DifficultyAdjustmentInterval() != 0)
     {
-        if (params.fPowAllowMinDifficultyBlocks)
+    	//mainnet 硬分叉 ，关闭非例行改难度
+    	bool bCurrAllow = params.fPowAllowMinDifficultyBlocks;
+    	const CChainParams& chainparams = Params();
+
+    	if( "main" == chainparams.NetworkIDString() && (pindexLast->nHeight+1) >= MODIFY_BASE_MAINNET_DIFFI_HEIGHT)
+    	{
+    		bCurrAllow = false;
+    	}
+
+        if (bCurrAllow)
         {
             // Special difficulty rule for testnet:
             // If the new block's timestamp is more than 2* 10 minutes

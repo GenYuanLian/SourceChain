@@ -1671,6 +1671,9 @@ bool AppInitMain(boost::thread_group& threadGroup, CScheduler& scheduler)
 
     // ********************************************************* Step 11: start node
 
+
+    LogPrintf("mainnet close diffi flag|height=%u\n", MODIFY_BASE_MAINNET_DIFFI_HEIGHT);
+
     //// debug print
     LogPrintf("mapBlockIndex.size() = %u\n",   mapBlockIndex.size());
     LogPrintf("nBestHeight = %d\n",                   chainActive.Height());
