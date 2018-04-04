@@ -186,7 +186,7 @@ bool parseSrcchainURI(const QUrl &uri, SendCoinsRecipient *out)
         {
             if(!i->second.isEmpty())
             {
-                if(!SrcchainUnits::parse(SrcchainUnits::STK, i->second, &rv.amount))
+                if(!SrcchainUnits::parse(SrcchainUnits::BSTK, i->second, &rv.amount))
                 {
                     return false;
                 }
@@ -225,7 +225,7 @@ QString formatSrcchainURI(const SendCoinsRecipient &info)
 
     if (info.amount)
     {
-        ret += QString("?amount=%1").arg(SrcchainUnits::format(SrcchainUnits::STK, info.amount, false, SrcchainUnits::separatorNever));
+        ret += QString("?amount=%1").arg(SrcchainUnits::format(SrcchainUnits::BSTK, info.amount, false, SrcchainUnits::separatorNever));
         paramCount++;
     }
 

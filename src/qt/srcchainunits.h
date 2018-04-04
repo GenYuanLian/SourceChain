@@ -56,9 +56,9 @@ public:
      */
     enum Unit
     {
-        STK,
-        mSTK,
-        uSTK
+        BSTK,
+        mBSTK,
+        uBSTK
     };
 
     enum SeparatorStyle

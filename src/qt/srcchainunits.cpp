@@ -17,9 +17,9 @@ SrcchainUnits::SrcchainUnits(QObject *parent):
 QList<SrcchainUnits::Unit> SrcchainUnits::availableUnits()
 {
     QList<SrcchainUnits::Unit> unitlist;
-    unitlist.append(STK);
-    unitlist.append(mSTK);
-    unitlist.append(uSTK);
+    unitlist.append(BSTK);
+    unitlist.append(mBSTK);
+    unitlist.append(uBSTK);
     return unitlist;
 }
 
@@ -27,9 +27,9 @@ bool SrcchainUnits::valid(int unit)
 {
     switch(unit)
     {
-    case STK:
-    case mSTK:
-    case uSTK:
+    case BSTK:
+    case mBSTK:
+    case uBSTK:
         return true;
     default:
         return false;
@@ -40,9 +40,9 @@ QString SrcchainUnits::name(int unit)
 {
     switch(unit)
     {
-    case STK: return QString("STK");
-    case mSTK: return QString("mSTK");
-    case uSTK: return QString::fromUtf8("μSTK");
+    case BSTK: return QString("BSTK");
+    case mBSTK: return QString("mBSTK");
+    case uBSTK: return QString::fromUtf8("μBSTK");
     default: return QString("???");
     }
 }
@@ -51,9 +51,9 @@ QString SrcchainUnits::description(int unit)
 {
     switch(unit)
     {
-    case STK: return QString("Srcchains");
-    case mSTK: return QString("Milli-Srcchains (1 / 1" THIN_SP_UTF8 "000)");
-    case uSTK: return QString("Micro-Srcchains (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
+    case BSTK: return QString("Srcchains");
+    case mBSTK: return QString("Milli-Srcchains (1 / 1" THIN_SP_UTF8 "000)");
+    case uBSTK: return QString("Micro-Srcchains (1 / 1" THIN_SP_UTF8 "000" THIN_SP_UTF8 "000)");
     default: return QString("???");
     }
 }
@@ -62,9 +62,9 @@ qint64 SrcchainUnits::factor(int unit)
 {
     switch(unit)
     {
-    case STK:  return 100000000;
-    case mSTK: return 100000;
-    case uSTK: return 100;
+    case BSTK:  return 100000000;
+    case mBSTK: return 100000;
+    case uBSTK: return 100;
     default:   return 100000000;
     }
 }
@@ -73,9 +73,9 @@ int SrcchainUnits::decimals(int unit)
 {
     switch(unit)
     {
-    case STK: return 8;
-    case mSTK: return 5;
-    case uSTK: return 2;
+    case BSTK: return 8;
+    case mBSTK: return 5;
+    case uBSTK: return 2;
     default: return 0;
     }
 }
