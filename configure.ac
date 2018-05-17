@@ -291,7 +291,7 @@ CPPFLAGS="$CPPFLAGS -DHAVE_BUILD_INFO -D__STDC_FORMAT_MACROS"
 
 AC_ARG_WITH([utils],
   [AS_HELP_STRING([--with-utils],
-  [build srcchain-cli srcchain-tx (default=yes)])],
+  [build srcchain-cli srcchain-tx wallet-utility (default=yes)])],
   [build_srcchain_utils=$withval],
   [build_srcchain_utils=yes])
 

@@ -6,6 +6,7 @@
 #ifndef SRCCHAIN_AMOUNT_H
 #define SRCCHAIN_AMOUNT_H
 
+#include "serialize.h" //added for bitpay
 #include <stdint.h>
 
 /** Amount in satoshis (Can be negative) */

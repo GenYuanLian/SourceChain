@@ -221,6 +221,16 @@ unsigned int CCoinsViewCache::GetCacheSize() const {
     return cacheCoins.size();
 }
 
+//added for bitpay start
+const CTxOut &CCoinsViewCache::GetOutputFor(const CTxIn& input) const
+{
+    const Coin& coins = AccessCoin(input.prevout);
+//    assert(coins && coins->IsAvailable(input.prevout.n));
+//    return coins->out[input.prevout.n];
+    return coins.out;
+}
+//added for bitpay end
+
 CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
 {
     if (tx.IsCoinBase())

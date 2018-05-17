@@ -20,6 +20,7 @@ endif
 SRCCHAIND_BIN=$(top_builddir)/src/$(SRCCHAIN_DAEMON_NAME)$(EXEEXT)
 SRCCHAIN_QT_BIN=$(top_builddir)/src/qt/$(SRCCHAIN_GUI_NAME)$(EXEEXT)
 SRCCHAIN_CLI_BIN=$(top_builddir)/src/$(SRCCHAIN_CLI_NAME)$(EXEEXT)
+WALLET_UTILITY_BIN=$(top_builddir)/src/wallet-utility$(EXEEXT)
 SRCCHAIN_WIN_INSTALLER=$(PACKAGE)-$(PACKAGE_VERSION)-win$(WINDOWS_BITS)-setup$(EXEEXT)
 
 empty :=
@@ -75,6 +76,7 @@ $(SRCCHAIN_WIN_INSTALLER): all-recursive
 	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(SRCCHAIND_BIN) $(top_builddir)/release
 	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(SRCCHAIN_QT_BIN) $(top_builddir)/release
 	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(SRCCHAIN_CLI_BIN) $(top_builddir)/release
+	STRIPPROG="$(STRIP)" $(INSTALL_STRIP_PROGRAM) $(WALLET_UTILITY_BIN) $(top_builddir)/release
 	@test -f $(MAKENSIS) && $(MAKENSIS) -V2 $(top_builddir)/share/setup.nsi || \
 	  echo error: could not build $@
 	@echo built $@
@@ -168,6 +170,9 @@ $(SRCCHAIND_BIN): FORCE
 $(SRCCHAIN_CLI_BIN): FORCE
 	$(MAKE) -C src $(@F)
 
+$(WALLET_UTILITY_BIN): FORCE
+	$(MAKE) -C src $(@F)
+	
 if USE_LCOV
 LCOV_FILTER_PATTERN=-p "/usr/include/" -p "src/leveldb/" -p "src/bench/" -p "src/univalue" -p "src/crypto/ctaes" -p "src/secp256k1"
 

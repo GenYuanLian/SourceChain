@@ -51,7 +51,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getbalance", 1, "minconf" },
     { "getbalance", 2, "include_watchonly" },
     { "getblockhash", 0, "height" },
-    { "getblockhashes", 0, "michael"},
     { "waitforblockheight", 0, "height" },
     { "waitforblockheight", 1, "timeout" },
     { "waitforblock", 1, "timeout" },
@@ -141,6 +140,11 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "echojson", 7, "arg7" },
     { "echojson", 8, "arg8" },
     { "echojson", 9, "arg9" },
+    //added for bitpay
+    { "getblockhashes", 0, "high"},
+    { "getblockhashes", 1, "low"},
+    { "getblockhashes", 2, "michael"},
+
 };
 
 class CRPCConvertTable
