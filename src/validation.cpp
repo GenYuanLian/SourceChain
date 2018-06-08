@@ -1675,24 +1675,14 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
            (*pindex->phashBlock == block.GetHash()));
     int64_t nTimeStart = GetTimeMicros();
 
-    if(pindex->nHeight==4642){
-    	return true;
-    }
+
     // Check it again in case a previous version let a bad block in
     if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck))
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
 
     // verify that the view's current state corresponds to the previous block
     uint256 hashPrevBlock = pindex->pprev == nullptr ? uint256() : pindex->pprev->GetBlockHash();
-//    assert(hashPrevBlock == view.GetBestBlock());
-
-    if(pindex->nHeight==4643){
-    	//std::cout<<"hashPrevBlock  :"<<hashPrevBlock.ToString()<<std::endl;
-    	//std::cout<<"view.GetBestBlock:"<<view.GetBestBlock().ToString()<<std::endl;
-    }
-    else{
-    	assert(hashPrevBlock==view.GetBestBlock());
-    }
+    assert(hashPrevBlock==view.GetBestBlock());
 
     // Special case for the genesis block, skipping connection of its transactions
     // (its coinbase is unspendable)
