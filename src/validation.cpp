@@ -1690,6 +1690,12 @@ static DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* 
             return DISCONNECT_FAILED;
         }
     }
+    if (fSpentIndex) {
+        if (!pblocktree->UpdateSpentIndex(spentIndex)) {
+//            return AbortNode(state, "Failed to delete transaction index");
+            return DISCONNECT_FAILED;
+        }
+    }
     //added for bitpay end
 
     return fClean ? DISCONNECT_OK : DISCONNECT_UNCLEAN;
