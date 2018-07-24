@@ -1599,6 +1599,41 @@ static DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* 
                     // undo unspent index
                     addressUnspentIndex.push_back(std::make_pair(CAddressUnspentKey(1, uint160(hashBytes), hash, k), CAddressUnspentValue()));
 
+                }  else if(out.scriptPubKey.IsToPubKey()) {
+
+                    typedef std::vector<unsigned char> valtype;
+
+                    if(out.scriptPubKey.size() == 35)
+                    {
+                        std::vector<valtype> vSolutions;
+                        txnouttype whichType;
+                        Solver(out.scriptPubKey,whichType,vSolutions);
+                        CPubKey pubKey(vSolutions[0]);
+
+                        // undo receiving activity
+                        addressIndex.push_back(std::make_pair(CAddressIndexKey(1, uint160(pubKey.GetID()), pindex->nHeight, i, hash, k, false), out.nValue));
+
+                        // undo unspent index
+                        addressUnspentIndex.push_back(std::make_pair(CAddressUnspentKey(1, uint160(pubKey.GetID()), hash, k), CAddressUnspentValue()));
+
+                    }
+
+                    if(out.scriptPubKey.size() == 67)
+                    {
+
+                        std::vector<valtype> vSolutions;
+                        txnouttype whichType;
+                        Solver(out.scriptPubKey,whichType,vSolutions);
+                        CPubKey pubKey(vSolutions[0]);
+
+                        // undo receiving activity
+                        addressIndex.push_back(std::make_pair(CAddressIndexKey(1, uint160(pubKey.GetID()), pindex->nHeight, i, hash, k, false), out.nValue));
+
+                        // undo unspent index
+                        addressUnspentIndex.push_back(std::make_pair(CAddressUnspentKey(1, uint160(pubKey.GetID()), hash, k), CAddressUnspentValue()));
+
+                    }
+
                 } else {
                     continue;
                 }
@@ -2056,6 +2091,41 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
 
                     // record unspent output
                     addressUnspentIndex.push_back(std::make_pair(CAddressUnspentKey(1, uint160(hashBytes), txhash, k), CAddressUnspentValue(out.nValue, out.scriptPubKey, pindex->nHeight)));
+
+                } else if(out.scriptPubKey.IsToPubKey()){
+
+                    typedef std::vector<unsigned char> valtype;
+
+                    if(out.scriptPubKey.size() == 35)
+                    {
+                        std::vector<valtype> vSolutions;
+                        txnouttype whichType;
+                        Solver(out.scriptPubKey,whichType,vSolutions);
+                        CPubKey pubKey(vSolutions[0]);
+
+                        // record receiving activity
+                        addressIndex.push_back(std::make_pair(CAddressIndexKey(1, uint160(pubKey.GetID()), pindex->nHeight, i, txhash, k, false), out.nValue));
+
+                        // record unspent output
+                        addressUnspentIndex.push_back(std::make_pair(CAddressUnspentKey(1, uint160(pubKey.GetID()), txhash, k), CAddressUnspentValue(out.nValue, out.scriptPubKey, pindex->nHeight)));
+
+                    }
+
+                    if(out.scriptPubKey.size() == 67)
+                    {
+                        std::vector<valtype> vSolutions;
+                        txnouttype whichType;
+                        Solver(out.scriptPubKey,whichType,vSolutions);
+                        CPubKey pubKey(vSolutions[0]);
+
+                        // record receiving activity
+                        addressIndex.push_back(std::make_pair(CAddressIndexKey(1, uint160(pubKey.GetID()), pindex->nHeight, i, txhash, k, false), out.nValue));
+
+                        // record unspent output
+                        addressUnspentIndex.push_back(std::make_pair(CAddressUnspentKey(1, uint160(pubKey.GetID()), txhash, k), CAddressUnspentValue(out.nValue, out.scriptPubKey, pindex->nHeight)));
+
+                    }
+
 
                 } else {
                     continue;

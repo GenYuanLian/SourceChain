@@ -141,9 +141,15 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "echojson", 8, "arg8" },
     { "echojson", 9, "arg9" },
     //added for bitpay
-    { "getblockhashes", 0, "high"},
-    { "getblockhashes", 1, "low"},
-    { "getblockhashes", 2, "michael"},
+    { "getblockhashes"   , 0, "high"},
+    { "getblockhashes"   , 1, "low"},
+    { "getblockhashes"   , 2, "options"},
+    { "getspentinfo"     , 0, "nArguments"},
+    { "getaddresstxids"  , 0, "nArguments"},
+    { "getaddressbalance", 0, "nArguments"},
+    { "getaddressdeltas" , 0, "nArguments"},
+    { "getaddressutxos"  , 0, "nArguments"},
+    { "getaddressmempool", 0, "nArguments"},
 
 };
 
