@@ -210,6 +210,22 @@ bool CScript::IsPayToPublicKeyHash() const
         (*this)[23] == OP_EQUALVERIFY &&
         (*this)[24] == OP_CHECKSIG);
 }
+
+bool CScript::IsToPubKey() const
+{
+    if (this->size() == 35 && (*this)[0] == 33 && (*this)[34] == OP_CHECKSIG
+        && ((*this)[1] == 0x02 || (*this)[1] == 0x03))
+    {
+        return true;
+    }
+    if (this->size() == 67 && (*this)[0] == 65 && (*this)[66] == OP_CHECKSIG
+        && (*this)[1] == 0x04)
+    {
+        return true; // if not fully valid, a case that would not be compressible
+    }
+    return false;
+}
+
 //added for bitpay end
 
 bool CScript::IsPayToScriptHash() const
