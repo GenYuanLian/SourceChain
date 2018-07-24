@@ -592,6 +592,7 @@ static bool ProcessBlockFound(const CBlock* pblock, const CChainParams& chainpar
     return true;
 }
 
+extern bool ShutdownRequested();
 void static SrcchainMiner(const CChainParams& chainparams)
 {
     LogPrintf("BSTKMiner started\n");
@@ -609,7 +610,8 @@ void static SrcchainMiner(const CChainParams& chainparams)
         if (!coinbaseScript || coinbaseScript->reserveScript.empty())
             throw std::runtime_error("No coinbase script available (mining requires a wallet)");
 
-        while (true) {
+        //while (true) {   //2018-06-21,fengzhh,解决使用-gen参数启动,退出程序产生异常的问题
+        while (!ShutdownRequested()) {
             if (chainparams.MiningRequiresPeers()) {
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
@@ -617,7 +619,7 @@ void static SrcchainMiner(const CChainParams& chainparams)
                     bool fvNodesEmpty;
 
                     //xd added started
-                    if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0)
+                    if (g_connman && (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL) == 0))
                     {
                         fvNodesEmpty=true;
                     }
@@ -695,9 +697,12 @@ void static SrcchainMiner(const CChainParams& chainparams)
 
                 // Check for stop or if block needs to be rebuilt
                 boost::this_thread::interruption_point();
+                if (ShutdownRequested()) //2018-06-21,fengzhh
+                    break;
 
                 // Regtest mode doesn't require peers //xd added
-                if (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL)==0 && chainparams.MiningRequiresPeers())
+                if ( g_connman && (g_connman->GetNodeCount(CConnman::CONNECTIONS_ALL)==0)
+                       && chainparams.MiningRequiresPeers() )
                     break;
 
                 if (nNonce >= 0xffff0000)
