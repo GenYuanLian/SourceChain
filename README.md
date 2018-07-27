@@ -80,3 +80,26 @@ Translations are periodically pulled from Transifex and merged into the git repo
 pull from Transifex would automatically overwrite them again.
 
 Translators should also subscribe to the [mailing list](https://groups.google.com/forum/#!forum/srcchain-translators).
+
+Documentation
+-------------------------
+For more information, [Please visit here.](http://genyuanlian-docs.readthedocs.io "genyuanlian-docs")
+
+Contact Developers
+-------------------------
+
+Developers are available at:
+
+| Label Name              | Description                                                                                                                                                                                                                                                               |
+| :---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Gitter                  | [![Join the chat at https://gitter.im/genyuanlian-SourceBlockchain/Lobby](https://badges.gitter.im/genyuanlian-SourceBlockchain/Lobby.svg)](https://gitter.im/genyuanlian-SourceBlockchain/Lobby?utm_source=share-link&utm_medium=link&utm_campaign=share-link) |
+
+Issues & PRs management
+-------------------------
+[![Waffle.io - Columns and their card count](https://badge.waffle.io/GenYuanLian/SourceChain.svg?columns=all)](https://waffle.io/GenYuanLian/SourceChain)              
+
+[![Throughput Graph](https://graphs.waffle.io/GenYuanLian/SourceChain/throughput.svg)](https://waffle.io/GenYuanLian/SourceChain/metrics/throughput) 
+
+LICENSE
+-------------------------
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
